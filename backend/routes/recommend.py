@@ -1,28 +1,30 @@
 from fastapi import APIRouter, Depends
 from auth import verify_token
+from routes.predict import predict_cost
 
 router = APIRouter()
 
 @router.post("/")
 def get_recommendation(
-    vcpu: int,
-    ram_gb: float,
-    storage_gb: float,
-    usage_hours: float,
-    budget: float = None,
-    user=Depends(verify_token)  # 🔐 PROTECTED
+    vcpu:          int,
+    ram_gb:        float,
+    storage_gb:    float,
+    usage_hours:   float,
+    region:        str   = "us-east",
+    pricing_model: str   = "on-demand",
+    budget:        float = None,
+    user = Depends(verify_token)
 ):
-    base = vcpu * 8 + ram_gb * 3.5 + storage_gb * 0.08 + (usage_hours / 720) * 12
-
     costs = {
-        "AWS":   round(base * 1.05, 2),
-        "Azure": round(base * 1.02, 2),
-        "GCP":   round(base * 0.96, 2),
+        "AWS":   predict_cost(vcpu, ram_gb, storage_gb, usage_hours, "AWS",   region, pricing_model),
+        "Azure": predict_cost(vcpu, ram_gb, storage_gb, usage_hours, "Azure", region, pricing_model),
+        "GCP":   predict_cost(vcpu, ram_gb, storage_gb, usage_hours, "GCP",   region, pricing_model),
     }
 
     sorted_providers = sorted(costs.items(), key=lambda x: x[1])
-    best  = sorted_providers[0]
-    worst = sorted_providers[-1]
+    best             = sorted_providers[0]
+    worst            = sorted_providers[-1]
+    savings          = round(worst[1] - best[1], 2)
 
     recommendations = []
 
@@ -32,7 +34,6 @@ def get_recommendation(
         "message":  f"{best[0]} is the cheapest at ${best[1]}/month for your workload.",
     })
 
-    savings = round(worst[1] - best[1], 2)
     recommendations.append({
         "type":     "savings",
         "priority": "high",
@@ -43,14 +44,21 @@ def get_recommendation(
         recommendations.append({
             "type":     "budget",
             "priority": "critical",
-            "message":  f"Your cheapest option ${best[1]}/month exceeds your budget of ${budget}. Consider reducing storage or usage hours.",
+            "message":  f"Cheapest option ${best[1]}/month exceeds your budget of ${budget}. Consider reducing storage or usage hours.",
         })
 
     if usage_hours < 360:
         recommendations.append({
             "type":     "usage",
             "priority": "medium",
-            "message":  "You're using less than 50% of monthly hours. Consider spot/preemptible instances for extra savings.",
+            "message":  "You are using less than 50% of monthly hours. Consider spot instances for extra savings.",
+        })
+
+    if pricing_model == "on-demand" and usage_hours >= 500:
+        recommendations.append({
+            "type":     "pricing",
+            "priority": "medium",
+            "message":  f"You are running {usage_hours} hours/month. Switching to 1yr-reserved could save you ~55% compared to on-demand.",
         })
 
     return {

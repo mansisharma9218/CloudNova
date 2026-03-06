@@ -10,9 +10,17 @@ export default function PricingPage() {
     api.pricing().then(d => { setData(d); setLoading(false); });
   }, []);
 
-  const filtered = filter === "All"
-    ? data
-    : data.filter(r => r.provider === filter);
+  let filtered = filter === "All"
+  ? data
+  : data.filter(r => r.provider === filter);
+
+// limit rows per provider
+  const providerCounts = {};
+  filtered = filtered.filter(row => {
+   const p = row.provider;
+    providerCounts[p] = (providerCounts[p] || 0) + 1;
+    return providerCounts[p] <= 40;
+  });
 
   return (
     <div>

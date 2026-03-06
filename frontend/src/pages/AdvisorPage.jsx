@@ -7,9 +7,24 @@ import Slider from "../components/Slider";
 import StatCard from "../components/StatCard";
 import ProviderBars from "../components/ProviderBars";
 
+const REGIONS = [
+  { value: "us-east",  label: "US East" },
+  { value: "us-west",  label: "US West" },
+  { value: "europe",   label: "Europe" },
+  { value: "asia",     label: "Asia Pacific" },
+];
+
+const PRICING_MODELS = [
+  { value: "on-demand",    label: "On-Demand" },
+  { value: "1yr-reserved", label: "1-Year Reserved" },
+  { value: "3yr-reserved", label: "3-Year Reserved" },
+  { value: "spot",         label: "Spot / Preemptible" },
+];
+
 export default function AdvisorPage() {
   const [form, setForm] = useState({
     vcpu: 2, ram_gb: 4, storage_gb: 50, usage_hours: 720,
+    region: "us-east", pricing_model: "on-demand",
   });
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState(null);
@@ -28,13 +43,13 @@ export default function AdvisorPage() {
   };
 
   const barData = result
-    ? Object.entries(result.providers).map(([name, cost]) => ({
-        name,
-        cost,
-        fill: PROVIDER_COLORS[name],
-      }))
-    : [];
-
+  ? Object.entries(result.predicted_costs || {}).map(([name, cost]) => ({
+      name,
+      cost,
+      fill: PROVIDER_COLORS[name],
+    }))
+  : [];
+   
   return (
     <div>
       <div className="hero">
@@ -47,18 +62,47 @@ export default function AdvisorPage() {
       </div>
 
       <div className="main">
-        {/* ── INPUT + COMPARISON ── */}
         <div className="two-col section">
 
           {/* INPUT FORM */}
           <div className="card">
             <div className="card-title">Resource Requirements</div>
             <div className="form-grid">
-              <Slider label="vCPU Cores"        name="vcpu"        min={1}  max={64}   step={1}  value={form.vcpu}        unit=""     onChange={handleChange} />
-              <Slider label="RAM (GB)"           name="ram_gb"      min={1}  max={256}  step={1}  value={form.ram_gb}      unit=" GB"  onChange={handleChange} />
-              <Slider label="Storage (GB)"       name="storage_gb"  min={10} max={2000} step={10} value={form.storage_gb}  unit=" GB"  onChange={handleChange} />
-              <Slider label="Usage Hours/Month"  name="usage_hours" min={1}  max={744}  step={1}  value={form.usage_hours} unit=" hrs" onChange={handleChange} />
+              <Slider label="vCPU Cores"       name="vcpu"        min={1}  max={64}   step={1}  value={form.vcpu}        unit=""     onChange={handleChange} />
+              <Slider label="RAM (GB)"          name="ram_gb"      min={1}  max={256}  step={1}  value={form.ram_gb}      unit=" GB"  onChange={handleChange} />
+              <Slider label="Storage (GB)"      name="storage_gb"  min={10} max={2000} step={10} value={form.storage_gb}  unit=" GB"  onChange={handleChange} />
+              <Slider label="Usage Hours/Month" name="usage_hours" min={1}  max={744}  step={1}  value={form.usage_hours} unit=" hrs" onChange={handleChange} />
             </div>
+
+            {/* DROPDOWNS */}
+            <div className="dropdown-grid">
+              <div className="dropdown-group">
+                <label className="dropdown-label">Region</label>
+                <select
+                  className="dropdown"
+                  value={form.region}
+                  onChange={e => handleChange("region", e.target.value)}
+                >
+                  {REGIONS.map(r => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="dropdown-group">
+                <label className="dropdown-label">Pricing Model</label>
+                <select
+                  className="dropdown"
+                  value={form.pricing_model}
+                  onChange={e => handleChange("pricing_model", e.target.value)}
+                >
+                  {PRICING_MODELS.map(p => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <button
               className={`btn-primary ${loading ? "loading" : ""}`}
               onClick={handlePredict}
@@ -73,7 +117,7 @@ export default function AdvisorPage() {
             <div className="card-title">Provider Comparison</div>
             {result ? (
               <div className="fade-in">
-                <ProviderBars providers={result.providers} />
+                <ProviderBars providers={result.predicted_costs} />
                 <div className="rec-box">
                   <span className="rec-icon">✦</span>
                   <div className="rec-text">
@@ -92,13 +136,13 @@ export default function AdvisorPage() {
           </div>
         </div>
 
-        {/* ── STATS + CHART ── */}
+        {/* STATS + CHART */}
         {result && (
           <div className="section fade-in">
             <div className="results-grid">
-              <StatCard label="Predicted Monthly Cost" value={`$${result.predicted_monthly_cost_usd}`} sub="Based on your inputs"          type="success"  />
-              <StatCard label="Recommended Provider"   value={result.recommendation}                  sub="Lowest cost for your config"    type="success" />
-              <StatCard label="Potential Savings"      value={`$${result.savings_vs_most_expensive}`} sub="vs. most expensive option"      type="success" />
+              <StatCard label="Predicted Monthly Cost" value={`$${result.predicted_costs[result.recommendation]}`} sub="Based on your inputs"       type="success" />
+              <StatCard label="Recommended Provider"   value={result.recommendation}                  sub="Lowest cost for your config" type="success" />
+              <StatCard label="Potential Savings"      value={`$${result.savings_vs_most_expensive}`} sub="vs. most expensive option"   type="success" />
             </div>
 
             <div className="card">
@@ -113,9 +157,7 @@ export default function AdvisorPage() {
                     cursor={{ fill: "rgba(255,255,255,0.03)" }}
                     formatter={(v) => [`$${v}`, "Monthly Cost"]}
                   />
-                  <Bar dataKey="cost" radius={[6, 6, 0, 0]}
-                    fill={barData[0]?.fill}
-                  />
+                  <Bar dataKey="cost" radius={[6, 6, 0, 0]} fill={barData[0]?.fill} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

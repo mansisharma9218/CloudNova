@@ -18,3 +18,9 @@ backend/firebase_key.json
 
 # System
 .DS_Storenode_modules/
+
+*.pyc
+ml_model/*.pkl
+.vscode/settings.json
+
+
