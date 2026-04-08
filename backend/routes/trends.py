@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from auth import verify_token
 import pickle
 import pandas as pd
 import os
@@ -19,7 +20,7 @@ with open(ENCODER_PATH, "rb") as f:
 months = ["Jan","Feb","Mar","Apr","May","Jun"]
 
 @router.get("/")
-def get_trends():
+def get_trends(user=Depends(verify_token)):
 
     results = []
 

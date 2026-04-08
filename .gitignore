@@ -18,6 +18,7 @@ backend/firebase_key.json
 
 # System
 .DS_Storenode_modules/
+.DS_Store
 
 *.pyc
 ml_model/*.pkl
