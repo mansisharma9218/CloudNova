@@ -17,8 +17,8 @@ backend/.env
 backend/firebase_key.json
 
 # System
-.DS_Storenode_modules/
 .DS_Store
+node_modules/
 
 *.pyc
 ml_model/*.pkl
