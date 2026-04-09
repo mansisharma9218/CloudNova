@@ -70,9 +70,9 @@ The ML model and prediction API accept the following 6 inputs:
 - pickle (model serialization)
 
 **Data Sources**
-- AWS Bulk Pricing API (on-demand, us-east-1) — real fetched data
-- Azure Retail Prices API (on-demand, per region) — real fetched data
-- GCP verified public pricing data (no public API available without auth)
+- AWS Bulk Pricing API (on-demand, us-east-1) 
+- Azure Retail Prices API (on-demand, per region) 
+- GCP public pricing data
 - Reserved and spot pricing calculated using verified discount multipliers from official AWS and Azure documentation
 - Regional multipliers derived from official AWS regional pricing documentation
 
@@ -82,19 +82,18 @@ The ML model and prediction API accept the following 6 inputs:
 |--------|-------|
 | Algorithm | Random Forest Regressor |
 | Training Records | 24,855 |
-| R² Score | 0.9874 |
-| MAE | $13.27 |
-| Features | vcpu, ram_gb, storage_gb, usage_hours, provider, region, pricing_model |
+| R² Score | 0.9958 |
+| MAE | $0.0162/hr |
+| Features | vcpu, ram_gb, storage_gb, provider, region, pricing_model |
 
 ### Feature Importance
 ```
-vcpu               48.8%
-usage_hours        22.8%
-ram_gb             10.8%
-pricing_model      10.4%
-provider            6.0%
-region              0.8%
-storage_gb          0.3%
+vcpu               75.8%
+ram_gb             14.8%
+pricing_model       9.0%
+provider            0.1%
+region              0.5%
+storage_gb          0.2%
 ```
 
 ### Model Notes
@@ -125,15 +124,20 @@ cloud-advisor/
 │       │   ├── TrendsPage.jsx
 │       │   └── LoginPage.jsx
 │       ├── firebase.js
+│       ├── index.js
 │       └── styles/global.css
 ├── backend/
 │   ├── routes/
 │   │   ├── predict.py
 │   │   ├── pricing.py
+│   │   ├── trends.py
 │   │   └── recommend.py
+│   ├── utils/
+│   │   └── cost_utils.py
 │   ├── auth.py
 │   ├── database.py
 │   ├── models.py
+│   ├── seed.py
 │   └── main.py
 └── ml_model/
     ├── fetch_prices.py
@@ -228,7 +232,7 @@ API Docs:  http://localhost:8000/docs
 | POST | `/api/recommend/` | Get recommendations with savings tips | Yes |
 | GET | `/api/pricing/` | Get all pricing data from database | Yes |
 | GET | `/api/pricing/{provider}` | Get pricing filtered by provider | Yes |
-
+| GET | `/api/trends/` | Get 6 month predicted cost trend | Yes |
 All protected endpoints require a Firebase ID token in the Authorization header:
 ```
 Authorization: Bearer <firebase_id_token>
@@ -240,7 +244,4 @@ Authorization: Bearer <firebase_id_token>
 - Cloud deployment (AWS/GCP/Azure)
 - User prediction history stored per account
 - Real-time GCP pricing via Google Cloud Billing API
-- Budget alerts and monthly spending tracker
-- Export predictions as PDF reports
-- Mobile-responsive improvements
 - Retrain model periodically with updated pricing data

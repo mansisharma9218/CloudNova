@@ -14,24 +14,27 @@ regions        = ["us-east", "us-west", "europe", "asia"]
 pricing_models = ["on-demand", "spot", "1yr-reserved", "3yr-reserved"]
 providers      = ["AWS", "Azure", "GCP"]
 
+# 🌍 REGION EFFECT
 REGION_MULT = {
     "us-east": 1.00,
-    "us-west": 1.08,
-    "europe":  1.12,
-    "asia":    1.20,
+    "us-west": 1.06,
+    "europe":  1.10,
+    "asia":    1.15,
 }
 
-PROVIDER_MULT = {
-    "AWS":   1.00,
-    "Azure": 0.99,
-    "GCP":   0.97,
+# ☁️ PROVIDER NOISE (NO BIAS, REALISTIC)
+PROVIDER_NOISE = {
+    "AWS":   (0.98, 1.04),
+    "Azure": (1.00, 1.06),
+    "GCP":   (0.96, 1.02),
 }
 
+# 💰 PRICING TIERS (STRICT ORDER)
 PRICING_MULT = {
+    "spot":         (0.50, 0.60),
+    "3yr-reserved": (0.65, 0.75),
+    "1yr-reserved": (0.80, 0.90),
     "on-demand":    (0.95, 1.05),
-    "spot":         (0.55, 0.75),
-    "1yr-reserved": (0.75, 0.90),
-    "3yr-reserved": (0.65, 0.85),
 }
 
 records = []
@@ -45,35 +48,31 @@ for provider, vcpu, ram, storage, hours, region, pricing in itertools.product(
     regions,
     pricing_models
 ):
-    # realistic RAM/CPU constraint
+
+    # ✅ realistic constraint
     if ram < vcpu or ram > vcpu * 16:
         continue
 
-    # 1. base compute cost
-    base_price = (vcpu * 0.04) + (ram * 0.005) + (storage * 0.0005)
+    # 🧠 NON-LINEAR BASE PRICE (CALIBRATED)
+    base_price = (
+        (vcpu ** 1.05) * 0.030 +
+        (ram ** 1.02) * 0.0042 +
+        (storage * 0.00012)
+    ) + 0.01
 
-    # 2. provider adjustment
-    base_price *= PROVIDER_MULT[provider]
-
-    # 3. region adjustment
+    # 🌍 region impact
     base_price *= REGION_MULT[region]
 
-    # 4. pricing model adjustment
+    # ☁️ provider small variation (NO bias)
+    low_p, high_p = PROVIDER_NOISE[provider]
+    base_price *= random.uniform(low_p, high_p)
+
+    # 💰 pricing model impact
     low, high = PRICING_MULT[pricing]
     price = base_price * random.uniform(low, high)
 
-    if provider == "Azure" and pricing in ["1yr-reserved", "3yr-reserved"]:
-        price *= 0.78
-
-    if provider == "GCP" and pricing == "spot":
-        price *= 0.80
-
-    if provider == "AWS" and pricing == "on-demand":
-        price *= 0.92
-
-    # 5. monthly cost
+    # 📊 outputs
     monthly_cost = price * hours
-
     price_per_vcpu = price / vcpu
 
     records.append({
@@ -90,7 +89,9 @@ for provider, vcpu, ram, storage, hours, region, pricing in itertools.product(
     })
 
 df = pd.DataFrame(records)
+
 print(f"Dataset size: {len(df)}")
 print(df.groupby(["provider", "pricing_model"])["monthly_cost"].mean().round(2))
+
 df.to_csv("ml_model/data.csv", index=False)
 print("Saved to ml_model/data.csv")

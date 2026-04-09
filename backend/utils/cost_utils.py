@@ -17,20 +17,17 @@ def compute_cost(
     region_enc = le_region.transform([region])[0]
     pricing_enc = le_pricing.transform([pricing_model])[0]
 
-    base_price = (vcpu * 0.045) + (ram_gb * 0.006)
-    monthly_estimate = base_price * usage_hours
-    price_per_vcpu = monthly_estimate / vcpu
-
+    # Match EXACTLY the 6 features the model was trained on
     input_df = pd.DataFrame([{
         "vcpu": vcpu,
         "ram_gb": ram_gb,
         "storage_gb": storage_gb,
-        "usage_hours": usage_hours,
-        "price_per_vcpu": price_per_vcpu,
         "provider_enc": provider_enc,
         "region_enc": region_enc,
         "pricing_model_enc": pricing_enc
     }])
 
-    cost = float(model.predict(input_df)[0])
-    return round(cost, 2)
+    # Model predicts price_per_hour — multiply by hours to get total cost
+    price_per_hour = float(model.predict(input_df)[0])
+    total_cost = price_per_hour * usage_hours
+    return round(total_cost, 2)

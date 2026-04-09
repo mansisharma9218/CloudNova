@@ -1,24 +1,27 @@
+import os
 import firebase_admin
 from firebase_admin import credentials, auth
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-cred = credentials.Certificate("firebase_key.json")
-firebase_admin.initialize_app(cred)
-
 security = HTTPBearer()
 
 try:
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    FIREBASE_KEY_PATH = os.path.join(BASE_DIR, "firebase_key.json")
+
     if not os.path.exists(FIREBASE_KEY_PATH):
         raise FileNotFoundError("firebase_key.json not found")
 
-    cred = credentials.Certificate(FIREBASE_KEY_PATH)
-    firebase_admin.initialize_app(cred)
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(FIREBASE_KEY_PATH)
+        firebase_admin.initialize_app(cred)
+
     print("Firebase initialized successfully")
 
 except Exception as e:
     print(f"Firebase initialization failed: {e}")
-    # Do NOT crash app — just log error
+
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
