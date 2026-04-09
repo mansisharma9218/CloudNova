@@ -233,6 +233,7 @@ API Docs:  http://localhost:8000/docs
 | GET | `/api/pricing/` | Get all pricing data from database | Yes |
 | GET | `/api/pricing/{provider}` | Get pricing filtered by provider | Yes |
 | GET | `/api/trends/` | Get 6 month predicted cost trend | Yes |
+
 All protected endpoints require a Firebase ID token in the Authorization header:
 ```
 Authorization: Bearer <firebase_id_token>
