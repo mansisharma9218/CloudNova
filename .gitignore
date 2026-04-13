@@ -23,5 +23,5 @@ node_modules/
 *.pyc
 ml_model/*.pkl
 .vscode/settings.json
-
+ml_model/*.csv 
 

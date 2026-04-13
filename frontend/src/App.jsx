@@ -1,18 +1,18 @@
 import "./styles/global.css";
 import Navbar from "./components/Navbar";
-import AdvisorPage from "./pages/AdvisorPage";
-import PricingPage from "./pages/PricingPage";
-import TrendsPage from "./pages/TrendsPage";
-import LoginPage from "./pages/LoginPage";
+import AdvisorPage  from "./pages/AdvisorPage";
+import PricingPage  from "./pages/PricingPage";
+import InsightsPage from "./pages/InsightsPage";
+import LoginPage    from "./pages/LoginPage";
 
 import { useEffect, useState } from "react";
 import { auth, provider } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 
 const PAGES = {
-  advisor: AdvisorPage,
-  pricing: PricingPage,
-  trends: TrendsPage,
+  advisor:  AdvisorPage,
+  pricing:  PricingPage,
+  insights: InsightsPage,
 };
 
 export default function App() {
@@ -32,30 +32,17 @@ export default function App() {
         setUser(null);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
-  const login = async () => {
-    await signInWithPopup(auth, provider);
-  };
+  const login  = async () => { await signInWithPopup(auth, provider); };
+  const logout = async () => { await signOut(auth); };
 
-  const logout = async () => {
-    await signOut(auth);
-  };
-
-  if (!user) {
-    return <LoginPage login={login} />;
-  }
+  if (!user) return <LoginPage login={login} />;
 
   return (
     <div className="app">
-      <Navbar
-        page={page}
-        setPage={setPage}
-        user={user}
-        logout={logout}
-      />
+      <Navbar page={page} setPage={setPage} user={user} logout={logout} />
       <Page user={user} />
     </div>
   );

@@ -6,60 +6,55 @@ const BASE = "http://localhost:8000/api";
 const getToken = async () => {
   const user = auth.currentUser;
   if (!user) throw new Error("User not authenticated");
-
-  return await user.getIdToken(true); // 🔥 force refresh
+  return await user.getIdToken(true);
 };
 
 const authHeaders = async () => {
   const token = await getToken();
-  return {
-    headers: { Authorization: `Bearer ${token}` }
-  };
+  return { headers: { Authorization: `Bearer ${token}` } };
 };
 
 const api = {
 
-  // ── COST PREDICTION ──
+  // ── COST PREDICTION (provider-level) ──────────────────────────────────────
   predict: async ({ vcpu, ram_gb, storage_gb, usage_hours, region, pricing_model }) => {
-    const params = new URLSearchParams({
-      vcpu,
-      ram_gb,
-      storage_gb,
-      usage_hours,
-      region,
-      pricing_model
-    }).toString();
-
+    const params = new URLSearchParams(
+      { vcpu, ram_gb, storage_gb, usage_hours, region, pricing_model }
+    ).toString();
     const res = await axios.post(`${BASE}/predict/?${params}`, {}, await authHeaders());
     return res.data;
   },
 
-  // ── PRICING TABLE ──
+  // ── INSTANCE RECOMMENDATION (ML-ranked specific instance per provider) ────
+  recommendInstance: async ({ vcpu, ram_gb, storage_gb, usage_hours, region, pricing_model }) => {
+    const params = new URLSearchParams(
+      { vcpu, ram_gb, storage_gb, usage_hours, region, pricing_model }
+    ).toString();
+    const res = await axios.post(`${BASE}/predict/instance?${params}`, {}, await authHeaders());
+    return res.data;
+  },
+
+  // ── PRICING TABLE ──────────────────────────────────────────────────────────
   pricing: async () => {
     const res = await axios.get(`${BASE}/pricing/`, await authHeaders());
     return res.data;
   },
 
-  // ── RECOMMENDATION ENGINE ──
+  // ── SMART RECOMMENDATION WITH TIPS ────────────────────────────────────────
   recommend: async ({ vcpu, ram_gb, storage_gb, usage_hours, budget }) => {
     const params = new URLSearchParams({
-      vcpu,
-      ram_gb,
-      storage_gb,
-      usage_hours,
-      ...(budget && { budget })
+      vcpu, ram_gb, storage_gb, usage_hours,
+      ...(budget && { budget }),
     }).toString();
-
     const res = await axios.post(`${BASE}/recommend/?${params}`, {}, await authHeaders());
     return res.data;
   },
 
-  // ── NEW: TRENDS DATA FROM ML MODEL ──
-  trends: async () => {
-    const res = await axios.get(`${BASE}/trends/`, await authHeaders());
+  // ── MODEL INSIGHTS ────────────────────────────────────────────────────────
+  insights: async () => {
+    const res = await axios.get(`${BASE}/insights/`, await authHeaders());
     return res.data;
   },
-
 };
 
 export default api;
