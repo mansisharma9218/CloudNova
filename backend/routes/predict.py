@@ -8,7 +8,7 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 
 from auth import verify_token
-from utils.cost_utils import compute_cost, predict_hourly_cost
+from routes.utils.cost_utils import compute_cost, predict_hourly_cost
 
 router = APIRouter()
 

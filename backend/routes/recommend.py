@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from auth import verify_token
-from utils.cost_utils import compute_cost
+from routes.utils.cost_utils import compute_cost
 from routes.predict import (
     model, le_provider, le_region, le_pricing,
     _best_instance, PROVIDERS,
